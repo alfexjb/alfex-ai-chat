@@ -4,7 +4,10 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Alfex AI Assistant</title>
+
+  <!-- n8n Chat Widget Styles -->
   <link href="https://cdn.jsdelivr.net/npm/@n8n/chat/dist/style.css" rel="stylesheet" />
+
   <style>
     * {
       margin: 0;
@@ -17,17 +20,18 @@
       height: 100%;
       overflow: hidden;
       background-color: #f4f6f9;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     }
 
-    #chat-container {
+    /* The chat container must have explicit dimensions for fullscreen mode */
+    #n8n-chat {
       width: 100%;
       height: 100vh;
-      display: flex;
-      flex-direction: column;
+      min-height: 600px;
+      display: block;
+      position: relative;
     }
 
-    /* Override n8n chat styles for fullscreen mode */
+    /* Salesforce Lightning colour overrides */
     :root {
       --chat--color--primary: #0070d2;
       --chat--color--primary-shade-50: #005fb2;
@@ -43,49 +47,60 @@
       --chat--message--user--color: #ffffff;
     }
 
-    /* Force fullscreen layout */
-    .n8n-chat {
+    /* Force the chat to fill the container */
+    .n8n-chat,
+    .chat-wrapper,
+    .chat-layout {
       width: 100% !important;
       height: 100vh !important;
       max-width: 100% !important;
-      max-height: 100vh !important;
       border-radius: 0 !important;
       border: none !important;
       box-shadow: none !important;
-    }
-
-    .chat-wrapper {
-      width: 100% !important;
-      height: 100vh !important;
+      position: relative !important;
     }
   </style>
 </head>
 <body>
-  <div id="chat-container"></div>
 
-  <script type="module">
-    import { createChat } from 'https://cdn.jsdelivr.net/npm/@n8n/chat/dist/chat.bundle.es.js';
+  <!-- Target container for the chat widget -->
+  <div id="n8n-chat"></div>
 
-    createChat({
-      webhookUrl: 'https://alfex.app.n8n.cloud/webhook/10dbcd0c-36bc-4bd4-9bc9-bb594aa6b026',
-      target: '#chat-container',
-      mode: 'fullscreen',
-      showWelcomeScreen: false,
-      loadPreviousSession: true,
-      initialMessages: [
-        'Hi! I\'m your Alfex AI Assistant.',
-        'I can help you find accounts, contacts, and plan the best route to visit your customers. How can I help you today?'
-      ],
-      i18n: {
-        en: {
-          title: 'Alfex AI Assistant',
-          subtitle: 'Ask me about your Salesforce accounts, contacts, or plan a visit route.',
-          footer: '',
-          getStarted: 'New Conversation',
-          inputPlaceholder: 'Ask me anything about your Salesforce data...',
-        },
-      },
+  <!-- Load the n8n chat widget using a regular script tag (avoids iframe module restrictions) -->
+  <script>
+    // Dynamically load the ES module after DOM is ready
+    window.addEventListener('DOMContentLoaded', function () {
+
+      // Create a module script element
+      var script = document.createElement('script');
+      script.type = 'module';
+      script.textContent = `
+        import { createChat } from 'https://cdn.jsdelivr.net/npm/@n8n/chat/dist/chat.bundle.es.js';
+
+        createChat({
+          webhookUrl: 'https://alfex.app.n8n.cloud/webhook/10dbcd0c-36bc-4bd4-9bc9-bb594aa6b026',
+          target: '#n8n-chat',
+          mode: 'fullscreen',
+          showWelcomeScreen: false,
+          loadPreviousSession: false,
+          initialMessages: [
+            "Hi! I'm your Alfex AI Assistant.",
+            "I can help you find accounts, contacts, and plan the best route to visit your customers. How can I help you today?"
+          ],
+          i18n: {
+            en: {
+              title: 'Alfex AI Assistant',
+              subtitle: 'Ask me about your Salesforce accounts, contacts, or plan a visit route.',
+              footer: '',
+              getStarted: 'New Conversation',
+              inputPlaceholder: 'Ask me anything about your Salesforce data...',
+            },
+          },
+        });
+      `;
+      document.body.appendChild(script);
     });
   </script>
+
 </body>
 </html>

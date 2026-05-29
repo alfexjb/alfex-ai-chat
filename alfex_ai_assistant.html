@@ -161,7 +161,6 @@
       userId = 'unknown_user';
     }
 
-    // Store userId globally so the login overlay can use it
     window._alfexUserId = userId;
 
     createChat({
@@ -187,35 +186,36 @@
       },
     });
 
-    // Poll for login-required responses from n8n and show the login overlay
-    // n8n sends back a response containing "SALESFORCE_LOGIN_REQUIRED::<url>"
-    function checkForLoginRequired() {
-      // Search all elements inside the chat container for the trigger token
-      const chatContainer = document.getElementById('n8n-chat');
+    // Poll every 300ms using TreeWalker to find the login token in any text node
+    var loginDetected = false;
+    setInterval(function() {
+      if (loginDetected) return;
+      var chatContainer = document.getElementById('n8n-chat');
       if (!chatContainer) return;
 
-      // Walk all text-containing elements
-      const allElements = chatContainer.querySelectorAll('*');
-      allElements.forEach(el => {
-        if (el.dataset.loginChecked) return;
-        if (el.children.length > 0) return; // only leaf nodes
-        const text = el.textContent || '';
+      var walker = document.createTreeWalker(
+        chatContainer,
+        NodeFilter.SHOW_TEXT,
+        null,
+        false
+      );
+
+      var node;
+      while ((node = walker.nextNode())) {
+        var text = node.nodeValue || '';
         if (text.includes('SALESFORCE_LOGIN_REQUIRED::')) {
-          el.dataset.loginChecked = 'true';
-          const parts = text.split('SALESFORCE_LOGIN_REQUIRED::');
-          const loginUrl = parts[1] ? parts[1].trim() : null;
+          loginDetected = true;
+          var loginUrl = text.split('SALESFORCE_LOGIN_REQUIRED::')[1].trim();
           if (loginUrl) {
-            const overlay = document.getElementById('login-overlay');
-            const btn = document.getElementById('login-btn');
+            var overlay = document.getElementById('login-overlay');
+            var btn = document.getElementById('login-btn');
             btn.href = loginUrl;
             overlay.classList.add('visible');
           }
+          break;
         }
-      });
-    }
-
-    // Run check every 500ms
-    setInterval(checkForLoginRequired, 500);
+      }
+    }, 300);
   </script>
 
 </body>

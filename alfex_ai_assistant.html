@@ -15,7 +15,6 @@
       box-sizing: border-box;
     }
 
-    /* Use fixed fill rather than vh — vh is unreliable inside Salesforce iframes */
     html {
       height: 100%;
     }
@@ -27,7 +26,6 @@
       background-color: #e8edf3;
     }
 
-    /* Outer wrapper — fills body height and adds left/right padding */
     #chat-wrapper {
       display: flex;
       align-items: stretch;
@@ -37,7 +35,6 @@
       padding: 12px 10%;
     }
 
-    /* Inner container that the chat widget fills */
     #n8n-chat {
       flex: 1;
       max-width: 900px;
@@ -46,6 +43,58 @@
       overflow: hidden;
       border-radius: 12px;
       box-shadow: 0 4px 24px rgba(0, 0, 0, 0.12);
+    }
+
+    /* Login overlay — shown when user needs to authenticate */
+    #login-overlay {
+      display: none;
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(22, 50, 92, 0.97);
+      z-index: 9999;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 40px;
+      border-radius: 12px;
+    }
+
+    #login-overlay.visible {
+      display: flex;
+    }
+
+    #login-overlay h2 {
+      color: #ffffff;
+      font-family: sans-serif;
+      font-size: 1.4rem;
+      margin-bottom: 12px;
+    }
+
+    #login-overlay p {
+      color: #c8d8f0;
+      font-family: sans-serif;
+      font-size: 0.95rem;
+      margin-bottom: 28px;
+      max-width: 400px;
+      line-height: 1.5;
+    }
+
+    #login-btn {
+      background: #0070d2;
+      color: #ffffff;
+      border: none;
+      padding: 14px 32px;
+      font-size: 1rem;
+      font-family: sans-serif;
+      border-radius: 6px;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-block;
+    }
+
+    #login-btn:hover {
+      background: #005fb2;
     }
 
     /* Salesforce Lightning colour overrides */
@@ -62,12 +111,10 @@
       --chat--message--bot--background: #ffffff;
       --chat--message--user--background: #0070d2;
       --chat--message--user--color: #ffffff;
-      /* Tighten message spacing */
       --chat--message--margin-bottom: 0.35rem;
       --chat--spacing: 0.75rem;
     }
 
-    /* Force the chat widget to fill its container */
     .n8n-chat,
     .chat-wrapper,
     .chat-layout {
@@ -89,14 +136,20 @@
 <body>
 
   <div id="chat-wrapper">
-    <div id="n8n-chat"></div>
+    <div id="n8n-chat" style="position:relative;">
+      <!-- Login overlay sits inside the chat container -->
+      <div id="login-overlay">
+        <h2>Connect Your Salesforce Account</h2>
+        <p>To use the Alfex AI Assistant, you need to log in with your Salesforce account. This only needs to be done once.</p>
+        <a id="login-btn" href="#" target="_blank">Log in to Salesforce</a>
+      </div>
+    </div>
   </div>
 
   <script type="module">
     import { createChat } from 'https://cdn.jsdelivr.net/npm/@n8n/chat/dist/chat.bundle.es.js';
 
-    // Safely get the Salesforce User ID from the URL parameter
-    // The Salesforce Web Tab injects this via ?userId={!User.Id}
+    // Get the Salesforce User ID from the URL parameter injected by the Web Tab (?userId={!User.Id})
     let userId = 'unknown_user';
     try {
       const urlParams = new URLSearchParams(window.location.search);
@@ -105,9 +158,11 @@
         userId = paramUserId;
       }
     } catch (e) {
-      // If URL parsing fails for any reason, fall back to unknown_user
       userId = 'unknown_user';
     }
+
+    // Store userId globally so the login overlay can use it
+    window._alfexUserId = userId;
 
     createChat({
       webhookUrl: 'https://alfex.app.n8n.cloud/webhook/10dbcd0c-36bc-4bd4-9bc9-bb594aa6b026/chat',
@@ -119,14 +174,7 @@
         userId: userId
       },
       initialMessages: [
-        "Hi! I'm your Alfex AI Assistant.",
-        "I can help you find accounts, contacts, and plan the best route to visit your customers.",
-        "Here are some examples of what you can ask me:",
-        "\u2022 Show me all accounts in Richmond VIC that are interested in Haas",
-        "\u2022 Show me all accounts in Brisbane QLD interested in Epilog and give me the best route to visit them",
-        "\u2022 Find all accounts in Sydney NSW interested in Lotus",
-        "\u2022 Show me all accounts in Melbourne that are interested in Haas and plan the best driving route",
-        "How can I help you today?"
+        "Hi! I'm your Alfex AI Assistant.\nI can help you find accounts, contacts, assets, and plan the best route to visit your customers.\n\nHere are some examples of what you can ask me:\n- Show me all accounts in Richmond VIC that are interested in Haas\n- Give me all accounts in Brisbane QLD that have an Epilog and give me the best route to visit them\n- Find all accounts in Sydney NSW interested in Lotus\n- Show me all accounts in Melbourne that are interested in Haas and plan the best driving route\n\nHow can I help you today?"
       ],
       i18n: {
         en: {
@@ -134,9 +182,36 @@
           subtitle: 'Ask me about your Salesforce accounts, contacts, or plan a visit route.',
           footer: '',
           getStarted: 'New Conversation',
-          inputPlaceholder: 'Ask me anything about your Salesforce data...',
+          inputPlaceholder: 'What would you like to ask?',
         },
       },
+    });
+
+    // Watch for login-required responses from n8n and show the login overlay
+    // n8n sends back a response with output containing "SALESFORCE_LOGIN_REQUIRED::<url>"
+    const observer = new MutationObserver(() => {
+      const messages = document.querySelectorAll('.chat-message-markdown, .chat-message p');
+      messages.forEach(msg => {
+        if (msg.dataset.loginChecked) return;
+        msg.dataset.loginChecked = 'true';
+        if (msg.textContent && msg.textContent.includes('SALESFORCE_LOGIN_REQUIRED::')) {
+          const parts = msg.textContent.split('SALESFORCE_LOGIN_REQUIRED::');
+          const loginUrl = parts[1] ? parts[1].trim() : null;
+          if (loginUrl) {
+            // Hide the message and show the login overlay instead
+            msg.closest('.chat-message') && (msg.closest('.chat-message').style.display = 'none');
+            const overlay = document.getElementById('login-overlay');
+            const btn = document.getElementById('login-btn');
+            btn.href = loginUrl;
+            overlay.classList.add('visible');
+          }
+        }
+      });
+    });
+
+    observer.observe(document.getElementById('n8n-chat'), {
+      childList: true,
+      subtree: true
     });
   </script>
 

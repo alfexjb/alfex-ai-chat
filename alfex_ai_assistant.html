@@ -182,24 +182,29 @@
           subtitle: 'Ask me about your Salesforce accounts, contacts, or plan a visit route.',
           footer: '',
           getStarted: 'New Conversation',
-          inputPlaceholder: 'What would you like to ask?',
+          inputPlaceholder: 'Ask me anything about your Salesforce data...',
         },
       },
     });
 
-    // Watch for login-required responses from n8n and show the login overlay
-    // n8n sends back a response with output containing "SALESFORCE_LOGIN_REQUIRED::<url>"
-    const observer = new MutationObserver(() => {
-      const messages = document.querySelectorAll('.chat-message-markdown, .chat-message p');
-      messages.forEach(msg => {
-        if (msg.dataset.loginChecked) return;
-        msg.dataset.loginChecked = 'true';
-        if (msg.textContent && msg.textContent.includes('SALESFORCE_LOGIN_REQUIRED::')) {
-          const parts = msg.textContent.split('SALESFORCE_LOGIN_REQUIRED::');
+    // Poll for login-required responses from n8n and show the login overlay
+    // n8n sends back a response containing "SALESFORCE_LOGIN_REQUIRED::<url>"
+    function checkForLoginRequired() {
+      // Search all elements inside the chat container for the trigger token
+      const chatContainer = document.getElementById('n8n-chat');
+      if (!chatContainer) return;
+
+      // Walk all text-containing elements
+      const allElements = chatContainer.querySelectorAll('*');
+      allElements.forEach(el => {
+        if (el.dataset.loginChecked) return;
+        if (el.children.length > 0) return; // only leaf nodes
+        const text = el.textContent || '';
+        if (text.includes('SALESFORCE_LOGIN_REQUIRED::')) {
+          el.dataset.loginChecked = 'true';
+          const parts = text.split('SALESFORCE_LOGIN_REQUIRED::');
           const loginUrl = parts[1] ? parts[1].trim() : null;
           if (loginUrl) {
-            // Hide the message and show the login overlay instead
-            msg.closest('.chat-message') && (msg.closest('.chat-message').style.display = 'none');
             const overlay = document.getElementById('login-overlay');
             const btn = document.getElementById('login-btn');
             btn.href = loginUrl;
@@ -207,12 +212,10 @@
           }
         }
       });
-    });
+    }
 
-    observer.observe(document.getElementById('n8n-chat'), {
-      childList: true,
-      subtree: true
-    });
+    // Run check every 500ms
+    setInterval(checkForLoginRequired, 500);
   </script>
 
 </body>

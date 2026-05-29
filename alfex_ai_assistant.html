@@ -1,37 +1,144 @@
-<script type="module">
-  import { createChat } from 'https://cdn.jsdelivr.net/npm/@n8n/chat/dist/chat.bundle.es.js';
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Alfex AI Assistant</title>
 
-  // Get the Salesforce User ID from the URL parameter injected by the Web Tab
-  const urlParams = new URLSearchParams(window.location.search );
-  const userId = urlParams.get('userId') || 'unknown_user';
+  <!-- n8n Chat Widget Styles -->
+  <link href="https://cdn.jsdelivr.net/npm/@n8n/chat/dist/style.css" rel="stylesheet" />
 
-  createChat({
-    webhookUrl: 'https://alfex.app.n8n.cloud/webhook/10dbcd0c-36bc-4bd4-9bc9-bb594aa6b026/chat',
-    target: '#n8n-chat',
-    mode: 'fullscreen',
-    showWelcomeScreen: false,
-    loadPreviousSession: false,
-    metadata: {
-      userId: userId
-    },
-    initialMessages: [
-      "Hi! I'm your Alfex AI Assistant.",
-      "I can help you find accounts, contacts, and plan the best route to visit your customers.",
-      "Here are some examples of what you can ask me:",
-      "\u2022 Show me all accounts in Richmond VIC that are interested in Haas",
-      "\u2022 Show me all accounts in Brisbane QLD interested in Epilog and give me the best route to visit them",
-      "\u2022 Find all accounts in Sydney NSW interested in Lotus",
-      "\u2022 Show me all accounts in Melbourne that are interested in Haas and plan the best driving route",
-      "How can I help you today?"
-    ],
-    i18n: {
-      en: {
-        title: 'Alfex AI Assistant',
-        subtitle: 'Ask me about your Salesforce accounts, contacts, or plan a visit route.',
-        footer: '',
-        getStarted: 'New Conversation',
-        inputPlaceholder: 'Ask me anything about your Salesforce data...',
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    /* Use fixed fill rather than vh — vh is unreliable inside Salesforce iframes */
+    html {
+      height: 100%;
+    }
+
+    body {
+      height: 100%;
+      min-height: 100%;
+      overflow: hidden;
+      background-color: #e8edf3;
+    }
+
+    /* Outer wrapper — fills body height and adds left/right padding */
+    #chat-wrapper {
+      display: flex;
+      align-items: stretch;
+      justify-content: center;
+      width: 100%;
+      height: 100%;
+      padding: 12px 10%;
+    }
+
+    /* Inner container that the chat widget fills */
+    #n8n-chat {
+      flex: 1;
+      max-width: 900px;
+      min-width: 320px;
+      position: relative;
+      overflow: hidden;
+      border-radius: 12px;
+      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.12);
+    }
+
+    /* Salesforce Lightning colour overrides */
+    :root {
+      --chat--color--primary: #0070d2;
+      --chat--color--primary-shade-50: #005fb2;
+      --chat--color--primary--shade-100: #004e92;
+      --chat--color--secondary: #0070d2;
+      --chat--color-secondary-shade-50: #005fb2;
+      --chat--color-dark: #16325c;
+      --chat--color-light: #f4f6f9;
+      --chat--header--background: #16325c;
+      --chat--header--color: #ffffff;
+      --chat--message--bot--background: #ffffff;
+      --chat--message--user--background: #0070d2;
+      --chat--message--user--color: #ffffff;
+      /* Tighten message spacing */
+      --chat--message--margin-bottom: 0.35rem;
+      --chat--spacing: 0.75rem;
+    }
+
+    /* Force the chat widget to fill its container */
+    .n8n-chat,
+    .chat-wrapper,
+    .chat-layout {
+      position: absolute !important;
+      top: 0 !important;
+      left: 0 !important;
+      right: 0 !important;
+      bottom: 0 !important;
+      width: 100% !important;
+      height: 100% !important;
+      max-width: 100% !important;
+      max-height: 100% !important;
+      border-radius: 0 !important;
+      border: none !important;
+      box-shadow: none !important;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="chat-wrapper">
+    <div id="n8n-chat"></div>
+  </div>
+
+  <script type="module">
+    import { createChat } from 'https://cdn.jsdelivr.net/npm/@n8n/chat/dist/chat.bundle.es.js';
+
+    // Safely get the Salesforce User ID from the URL parameter
+    // The Salesforce Web Tab injects this via ?userId={!User.Id}
+    let userId = 'unknown_user';
+    try {
+      const urlParams = new URLSearchParams(window.location.search);
+      const paramUserId = urlParams.get('userId');
+      if (paramUserId && paramUserId.length > 0) {
+        userId = paramUserId;
+      }
+    } catch (e) {
+      // If URL parsing fails for any reason, fall back to unknown_user
+      userId = 'unknown_user';
+    }
+
+    createChat({
+      webhookUrl: 'https://alfex.app.n8n.cloud/webhook/10dbcd0c-36bc-4bd4-9bc9-bb594aa6b026/chat',
+      target: '#n8n-chat',
+      mode: 'fullscreen',
+      showWelcomeScreen: false,
+      loadPreviousSession: false,
+      metadata: {
+        userId: userId
       },
-    },
-  } );
-</script>
+      initialMessages: [
+        "Hi! I'm your Alfex AI Assistant.",
+        "I can help you find accounts, contacts, and plan the best route to visit your customers.",
+        "Here are some examples of what you can ask me:",
+        "\u2022 Show me all accounts in Richmond VIC that are interested in Haas",
+        "\u2022 Show me all accounts in Brisbane QLD interested in Epilog and give me the best route to visit them",
+        "\u2022 Find all accounts in Sydney NSW interested in Lotus",
+        "\u2022 Show me all accounts in Melbourne that are interested in Haas and plan the best driving route",
+        "How can I help you today?"
+      ],
+      i18n: {
+        en: {
+          title: 'Alfex AI Assistant',
+          subtitle: 'Ask me about your Salesforce accounts, contacts, or plan a visit route.',
+          footer: '',
+          getStarted: 'New Conversation',
+          inputPlaceholder: 'Ask me anything about your Salesforce data...',
+        },
+      },
+    });
+  </script>
+
+</body>
+</html>

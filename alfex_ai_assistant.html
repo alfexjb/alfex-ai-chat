@@ -45,19 +45,18 @@
       box-shadow: 0 4px 24px rgba(0, 0, 0, 0.12);
     }
 
-    /* Login overlay */
+    /* Login overlay — sits OUTSIDE #n8n-chat using position:fixed so the widget can't remove it */
     #login-overlay {
       display: none;
-      position: absolute;
+      position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
       background: rgba(22, 50, 92, 0.97);
-      z-index: 9999;
+      z-index: 99999;
       flex-direction: column;
       align-items: center;
       justify-content: center;
       text-align: center;
       padding: 40px;
-      border-radius: 12px;
     }
 
     #login-overlay.visible {
@@ -135,14 +134,15 @@
 </head>
 <body>
 
+  <!-- Login overlay lives at body level so the n8n widget cannot remove it -->
+  <div id="login-overlay">
+    <h2>Connect Your Salesforce Account</h2>
+    <p>To use the Alfex AI Assistant, you need to log in with your Salesforce account. This only needs to be done once.</p>
+    <a id="login-btn" href="#" target="_blank">Log in to Salesforce</a>
+  </div>
+
   <div id="chat-wrapper">
-    <div id="n8n-chat" style="position:relative;">
-      <div id="login-overlay">
-        <h2>Connect Your Salesforce Account</h2>
-        <p>To use the Alfex AI Assistant, you need to log in with your Salesforce account. This only needs to be done once.</p>
-        <a id="login-btn" href="#" target="_blank">Log in to Salesforce</a>
-      </div>
-    </div>
+    <div id="n8n-chat"></div>
   </div>
 
   <!-- Load the n8n chat widget as a regular script (UMD build) -->
@@ -161,7 +161,7 @@
       userId = 'unknown_user';
     }
 
-    // Initialise the chat widget using the global window.n8nChat object (UMD build)
+    // Initialise the chat widget using the global N8nChat object (UMD build)
     window.N8nChat.createChat({
       webhookUrl: 'https://alfex.app.n8n.cloud/webhook/10dbcd0c-36bc-4bd4-9bc9-bb594aa6b026/chat',
       target: '#n8n-chat',
@@ -206,9 +206,8 @@
         var text = node.nodeValue || '';
         if (text.indexOf('SALESFORCE_LOGIN_REQUIRED::') !== -1) {
           loginDetected = true;
-          // Extract the URL — decode any HTML entities first
+          // Extract the URL and decode HTML entities (e.g. &amp; -> &)
           var rawUrl = text.split('SALESFORCE_LOGIN_REQUIRED::')[1].trim();
-          // Decode HTML entities (e.g. &amp; -> &)
           var tmp = document.createElement('textarea');
           tmp.innerHTML = rawUrl;
           var loginUrl = tmp.value;

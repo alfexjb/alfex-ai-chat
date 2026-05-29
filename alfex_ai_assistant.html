@@ -138,7 +138,7 @@
   <div id="login-overlay">
     <h2>Connect Your Salesforce Account</h2>
     <p>To use the Alfex AI Assistant, you need to log in with your Salesforce account. This only needs to be done once.</p>
-    <a id="login-btn" href="#" target="_blank">Log in to Salesforce</a>
+    <button id="login-btn" onclick="openLogin()">Log in to Salesforce</button>
   </div>
 
   <div id="chat-wrapper">
@@ -232,8 +232,7 @@
           var loginUrl = tmp.value;
           if (loginUrl) {
             var overlay = document.getElementById('login-overlay');
-            var btn = document.getElementById('login-btn');
-            btn.href = loginUrl;
+            pendingLoginUrl = loginUrl;
             overlay.classList.add('visible');
           }
           break;
@@ -242,6 +241,15 @@
     }
 
     setInterval(checkForLoginToken, 300);
+
+    // Store login URL globally so the button can open it via window.open()
+    var pendingLoginUrl = null;
+
+    function openLogin() {
+      if (pendingLoginUrl) {
+        window.open(pendingLoginUrl, '_blank', 'noopener=no');
+      }
+    }
   </script>
 
 </body>

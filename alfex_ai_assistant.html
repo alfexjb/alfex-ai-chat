@@ -180,6 +180,16 @@
       } catch(e) {}
     }
 
+    // Clear any cached n8n chat session so the widget always starts fresh
+    // (prevents the login-required message from replaying after OAuth redirect)
+    try {
+      Object.keys(localStorage).forEach(function(key) {
+        if (key.indexOf('n8n') !== -1 || key.indexOf('chat') !== -1) {
+          localStorage.removeItem(key);
+        }
+      });
+    } catch(e) {}
+
     // Initialise the chat widget using the global N8nChat object (UMD build)
     window.N8nChat.createChat({
       webhookUrl: 'https://alfex.app.n8n.cloud/webhook/10dbcd0c-36bc-4bd4-9bc9-bb594aa6b026/chat',

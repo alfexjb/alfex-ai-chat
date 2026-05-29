@@ -149,16 +149,35 @@
   <script src="https://cdn.jsdelivr.net/npm/@n8n/chat/dist/chat.bundle.umd.js"></script>
 
   <script>
-    // Get the Salesforce User ID from the URL parameter injected by the Web Tab (?userId={!User.Id})
+    // Get the Salesforce User ID — try multiple methods
     var userId = 'unknown_user';
+
+    // Method 1: Salesforce session API (works inside Lightning iframe)
     try {
-      var urlParams = new URLSearchParams(window.location.search);
-      var paramUserId = urlParams.get('userId');
-      if (paramUserId && paramUserId.length > 0) {
-        userId = paramUserId;
+      if (typeof sforce !== 'undefined' && sforce.one && sforce.one.getUserId) {
+        var sfId = sforce.one.getUserId();
+        if (sfId && sfId.length > 0) userId = sfId;
       }
-    } catch (e) {
-      userId = 'unknown_user';
+    } catch(e) {}
+
+    // Method 2: URL parameter (skip if it's the literal unresolved merge field)
+    if (userId === 'unknown_user') {
+      try {
+        var urlParams = new URLSearchParams(window.location.search);
+        var paramUserId = urlParams.get('userId');
+        if (paramUserId && paramUserId.length > 0 && paramUserId !== '{!User.Id}') {
+          userId = paramUserId;
+        }
+      } catch(e) {}
+    }
+
+    // Method 3: Try reading from parent frame URL
+    if (userId === 'unknown_user') {
+      try {
+        var parentUrl = window.parent.location.href;
+        var match = parentUrl.match(/userId=([^&]+)/);
+        if (match && match[1] && match[1] !== '%7B!User.Id%7D') userId = match[1];
+      } catch(e) {}
     }
 
     // Initialise the chat widget using the global N8nChat object (UMD build)
